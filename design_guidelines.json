@@ -1,0 +1,96 @@
+{
+  "project_title": "TeleInject SMS Dispatch & Client Command Panel",
+  "app_type": "dashboard",
+  "theme_strategy": {
+    "mode": "dark",
+    "archetype": "ARCHETYPE 2: THE PERFORMANCE PRO & TACTICAL COMMAND CENTER",
+    "base_background": "#090D16",
+    "surface_background": "#0F172A",
+    "card_background": "rgba(15, 23, 42, 0.75)",
+    "border_color": "rgba(255, 255, 255, 0.1)",
+    "accent_primary": "#38BDF8",
+    "accent_success": "#10B981",
+    "accent_warning": "#F59E0B",
+    "accent_danger": "#EF4444",
+    "gradient_glow": "radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.12) 0%, transparent 70%)"
+  },
+  "typography": {
+    "heading_font": "Outfit, sans-serif",
+    "mono_font": "JetBrains Mono, Source Code Pro, monospace",
+    "body_font": "Plus Jakarta Sans, sans-serif",
+    "sizes": {
+      "h1": "text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight",
+      "h2": "text-2xl sm:text-3xl font-bold tracking-tight",
+      "h3": "text-lg sm:text-xl font-semibold",
+      "body": "text-sm text-slate-300 leading-relaxed",
+      "caption": "text-xs text-slate-400 font-mono tracking-wider"
+    }
+  },
+  "spacing_and_layout": {
+    "grid_system": "MODE B: High Density Grid & Multi-Column Command Center",
+    "container_padding": "p-4 sm:p-6 lg:p-8",
+    "card_padding": "p-5 sm:p-6",
+    "gap_standard": "gap-4 sm:gap-6",
+    "header_height": "h-16",
+    "sidebar_width": "w-64"
+  },
+  "visual_enhancers": {
+    "glassmorphism": "backdrop-blur-xl bg-slate-900/80 border border-slate-800/80 shadow-2xl",
+    "glow_effects": "shadow-[0_0_20px_rgba(56,189,248,0.15)]",
+    "card_hover": "hover:border-sky-500/40 hover:shadow-[0_0_25px_rgba(56,189,248,0.1)] transition-all duration-300",
+    "sms_preview_bubble": "bg-slate-800/90 border border-sky-500/30 rounded-2xl p-4 shadow-lg font-mono text-sm text-sky-100"
+  },
+  "components_structure": {
+    "public_inject_panel": {
+      "path": "frontend/src/components/InjectPanel.js",
+      "description": "SMS-to-Telegram Inject Web Interface with Live Telegram Notification Preview, Client Key Selector, Sender ID, Message Body input with character count, and real-time dispatch status.",
+      "features": [
+        "Client lookup & auto-completion by client key",
+        "Sender ID input with custom prefix support (e.g. AD-PAPIATMA-s)",
+        "Live phone/telegram chat bubble preview showing exact formatted message",
+        "Instant send with response animation, error states, and history log drawer"
+      ]
+    },
+    "sent_history_log": {
+      "path": "frontend/src/components/MessageLogs.js",
+      "description": "Real-time message dispatch table with status badges (DELIVERED, FAILED, PENDING), client key tag, search filters, date range picker, and message body drawer view.",
+      "features": [
+        "Filter by status, client key, sender ID, or keyword",
+        "Export log as JSON/CSV",
+        "Resend failed message button",
+        "Expandable log detail modal with Telegram payload metadata"
+      ]
+    },
+    "admin_client_manager": {
+      "path": "frontend/src/components/AdminClientManager.js",
+      "description": "Admin panel section to perform CRUD operations on target Clients (Client Key, Name, Telegram Bot Token, Telegram Chat ID, Active/Inactive status, Rate Limit settings).",
+      "features": [
+        "Add / Edit / Delete client configurations",
+        "Test Bot Connection button (triggers test message to verifying bot token & chat ID)",
+        "Show/Hide Bot Token security toggle",
+        "Client active toggle switch"
+      ]
+    },
+    "admin_dashboard_stats": {
+      "path": "frontend/src/components/AdminDashboard.js",
+      "description": "Command center dashboard overview with analytics charts (Recharts), message throughput metrics, active client count, success rate percentage, and system health status."
+    },
+    "admin_auth_modal": {
+      "path": "frontend/src/components/AdminAuthModal.js",
+      "description": "Secure admin login screen with PIN/Password entry, session management, and access token persistence."
+    }
+  },
+  "instructions_to_main_agent": [
+    "Ensure the React application is fully responsive and optimized for both desktop and mobile viewports.",
+    "Place the Public Injector as the default home route `/` or accessible directly without friction, while placing Admin features behind `/admin` or an Admin Auth lock.",
+    "Format messages sent to Telegram clearly, e.g. using Telegram HTML/Markdown parse mode with bold Sender ID header, code blocks for metadata, and formatted SMS text.",
+    "Add 'data-testid' attributes to all form inputs, buttons, tables, badges, and modals for automated testing support.",
+    "Use 'sonner' toast notifications for immediate feedback on message send, client updates, and connection tests.",
+    "Store logs and client records reliably in backend database (SQLite/FastAPI) and provide fallback default seed data for demonstration."
+  ],
+  "UNIVERSAL_GUIDELINES": {
+    "testing_attributes": "All interactive elements MUST include data-testid='...' in kebab-case format.",
+    "accessibility": "Ensure high contrast contrast ratio >= 4.5:1 for body text against dark backgrounds.",
+    "motion": "Use smooth Framer Motion spring transitions for modal entrances, tab switches, and live chat preview updates."
+  }
+}

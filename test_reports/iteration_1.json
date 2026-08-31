@@ -1,0 +1,35 @@
+{
+  "summary": "Full backend + frontend testing of TeleInject app completed. 17/17 pytest tests pass. Playwright e2e verifies: unauth /admin redirect, admin login, overview stats, client CRUD (create/edit/delete), duplicate-key error toast, public inject panel loads active clients, live preview, inject with fake token produces failed toast + FAILED log in both public and admin logs.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/inject", "issue": "When Telegram delivery fails, backend raises HTTPException(502). Kubernetes ingress replaces 502 response body with an HTML error page (Content-Type text/html, not FastAPI JSON). Frontend still shows a toast because the fetch is treated as error, but the JSON detail is lost at the edge. Consider returning 200/207 with {status:'failed', detail:...} OR use 400/422 so ingress preserves the JSON body."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Admin dialogs (Add/Edit Client)", "issues": ["Radix DialogContent missing aria-describedby/Description prop -> console a11y warning. Add <DialogDescription> or aria-describedby to silence and improve a11y."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/backend_test.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "(Optional) Change /api/inject failure status from 502 to 400/422 (or return 200 with status='failed') so the FastAPI JSON detail survives Kubernetes ingress instead of being replaced by an HTML error page.",
+    "(Optional a11y) Add DialogDescription/aria-describedby to Radix DialogContent in AdminPanel to remove console warnings."
+  ],
+  "critical_code_review_comments": [
+    "server.py: /api/inject returns 502 on Telegram failure — ingress mangles 5xx bodies, so the client cannot read the actual error detail; prefer 4xx or a 200 with status field.",
+    "server.py CORS_ORIGINS='*' combined with allow_credentials=True is not a valid combination per CORS spec; browsers ignore credentialed responses from wildcard origins. Not a blocker since JWT is used in Authorization header, but recommend setting explicit origins if cookies are ever added.",
+    "server.py: Duplicate-key regex check uses raw user input inside $regex — a specially crafted key could break the regex or slow it. Prefer exact case-insensitive match via collation or escape input.",
+    "server.py file size is fine (~300 lines) — no split needed."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "admin@teleinject.com / admin123 (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "Tests create ephemeral TEST_/ramuXXXX clients and clean up via DELETE.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend test file at /app/backend/tests/backend_test.py can be reused. All core flows (auth, CRUD, duplicate rejection, inject failure logging, public secret hiding, admin guards, stats) are covered. The one thing to note: the /api/inject 502 response body is replaced by ingress with HTML — tests were adjusted to not parse JSON on that path.",
+  "rca of the issue": "N/A - no critical bugs found. The 502-body-mangling by k8s ingress is an infrastructure quirk, mitigation is to use 4xx or 200 with status field."
+}

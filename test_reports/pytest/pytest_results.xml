@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="17" time="6.353" timestamp="2026-08-31T14:50:28.476806+00:00" hostname="agent-env-fe69f5c2-2823-4f49-8532-2767f727f6ed"><testcase classname="tests.backend_test.TestAuth" name="test_login_success" time="0.883" /><testcase classname="tests.backend_test.TestAuth" name="test_login_wrong_password" time="0.570" /><testcase classname="tests.backend_test.TestClientsCRUD" name="test_create_client_and_persist" time="1.456" /><testcase classname="tests.backend_test.TestAuth" name="test_me_no_token" time="0.297" /><testcase classname="tests.backend_test.TestClientsCRUD" name="test_duplicate_key_rejected" time="0.146" /><testcase classname="tests.backend_test.TestClientsCRUD" name="test_update_client" time="0.255" /><testcase classname="tests.backend_test.TestClientsCRUD" name="test_public_clients_hides_secrets" time="0.306" /><testcase classname="tests.backend_test.TestClientsCRUD" name="test_inactive_client_hidden_from_public" time="0.696" /><testcase classname="tests.backend_test.TestAuth" name="test_me_valid_token" time="0.633" /><testcase classname="tests.backend_test.TestAdminGuards" name="test_admin_endpoints_require_auth[get-/admin/clients]" time="0.174" /><testcase classname="tests.backend_test.TestAdminGuards" name="test_admin_endpoints_require_auth[post-/admin/clients]" time="0.178" /><testcase classname="tests.backend_test.TestAdminGuards" name="test_admin_endpoints_require_auth[get-/admin/logs]" time="0.156" /><testcase classname="tests.backend_test.TestInject" name="test_inject_with_fake_token_fails_gracefully" time="1.673"><failure message="requests.exceptions.JSONDecodeError: Expecting value: line 1 column 1 (char 0)">/root/.venv/lib/python3.11/site-packages/requests/models.py:1116: in json
+    return complexjson.loads(self.text, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/json/decoder.py:337: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/json/decoder.py:355: in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+E   json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+During handling of the above exception, another exception occurred:
+backend/tests/backend_test.py:129: in test_inject_with_fake_token_fails_gracefully
+    detail = r.json().get("detail", "")
+             ^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1120: in json
+    raise RequestsJSONDecodeError(e.msg, e.doc, e.pos)
+E   requests.exceptions.JSONDecodeError: Expecting value: line 1 column 1 (char 0)</failure></testcase><testcase classname="tests.backend_test.TestAdminGuards" name="test_admin_endpoints_require_auth[get-/admin/stats]" time="0.161" /><testcase classname="tests.backend_test.TestStats" name="test_stats_returns_counts" time="0.416" /><testcase classname="tests.backend_test.TestInject" name="test_inject_unknown_key_404" time="0.339" /><testcase classname="tests.backend_test.TestInject" name="test_inject_case_insensitive_key" time="0.904" /></testsuite></testsuites>
