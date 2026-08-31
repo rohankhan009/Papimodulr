@@ -9,6 +9,7 @@ load_dotenv(ROOT_DIR / '.env')
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
+import asyncio
 import logging
 import uuid
 import html
@@ -102,6 +103,7 @@ class ClientCreate(BaseModel):
     bot_token: str
     chat_id: str
     active: bool = True
+    default_sender: Optional[str] = None
 
 
 class ClientUpdate(BaseModel):
@@ -110,6 +112,7 @@ class ClientUpdate(BaseModel):
     bot_token: Optional[str] = None
     chat_id: Optional[str] = None
     active: Optional[bool] = None
+    default_sender: Optional[str] = None
 
 
 class InjectInput(BaseModel):
@@ -236,6 +239,7 @@ async def admin_create_client(data: ClientCreate, admin: dict = Depends(get_curr
         "bot_token": data.bot_token.strip(),
         "chat_id": data.chat_id.strip(),
         "active": data.active,
+        "default_sender": (data.default_sender.strip() if data.default_sender else None),
         "created_at": now_iso(),
     }
     await db.clients.insert_one({**doc})
@@ -267,7 +271,7 @@ async def admin_test_client(client_id: str, admin: dict = Depends(get_current_ad
     if not c:
         raise HTTPException(status_code=404, detail="Client nahi mila")
     try:
-        text = format_telegram_message("TeleInject", "Test connection successful ✅")
+        text = format_telegram_message("PAPIATMA MODULE", "Test connection successful ✅")
         msg_id = await send_telegram(c["bot_token"], c["chat_id"], text)
         return {"status": "ok", "message_id": msg_id}
     except Exception as e:
@@ -297,6 +301,108 @@ async def admin_stats(admin: dict = Depends(get_current_admin)):
     }
 
 
+# ---------------- Telegram -> SMS polling ----------------
+async def tg_get_updates(token: str, offset):
+    url = f"https://api.telegram.org/bot{token}/getUpdates"
+    params = {"timeout": 0, "limit": 20}
+    if offset is not None:
+        params["offset"] = offset
+    async with httpx.AsyncClient(timeout=20) as c:
+        r = await c.get(url, params=params)
+    return r.json()
+
+
+def parse_sender_body(text: str, default_sender: str):
+    text = text.strip()
+    if "|" in text:
+        s, b = text.split("|", 1)
+        return (s.strip() or default_sender), b.strip()
+    if "\n" in text:
+        first, rest = text.split("\n", 1)
+        return (first.strip() or default_sender), rest.strip()
+    return default_sender, text
+
+
+async def queue_inject(clientdoc: dict, sender_id: str, body: str, source: str):
+    one_line_body = " ".join((body or "").splitlines())
+    await db.pending_injects.insert_one({
+        "id": str(uuid.uuid4()),
+        "client_key": clientdoc["key"],
+        "sender_id": sender_id,
+        "body": one_line_body,
+        "status": "queued",
+        "created_at": now_iso(),
+        "source": source,
+    })
+    await db.logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "client_key": clientdoc["key"],
+        "client_name": clientdoc["name"],
+        "sender_id": sender_id,
+        "body": one_line_body,
+        "direction": source,
+        "timestamp": now_iso(),
+        "status": "queued",
+        "telegram_message_id": None,
+        "error": None,
+    })
+
+
+async def poll_client_telegram(clientdoc: dict):
+    state = await db.tg_state.find_one({"client_id": clientdoc["id"]})
+    offset = state["offset"] if state else None
+    data = await tg_get_updates(clientdoc["bot_token"], offset)
+    if not data.get("ok"):
+        return
+    updates = data.get("result", [])
+    if not updates:
+        return
+    initializing = state is None  # pehli baar: purana backlog inject mat karo
+    last_offset = offset
+    for upd in updates:
+        last_offset = upd["update_id"] + 1
+        if initializing:
+            continue
+        msg = upd.get("message") or upd.get("channel_post") or upd.get("edited_message")
+        if not msg:
+            continue
+        text = msg.get("text") or msg.get("caption")
+        if not text:
+            continue
+        chat = msg.get("chat", {})
+        # security: sirf isi client ke configured chat_id se aaye message accept karo
+        if str(chat.get("id")) != str(clientdoc.get("chat_id")):
+            continue
+        default_sender = clientdoc.get("default_sender") or clientdoc.get("name") or "SMS"
+        sender_id, body = parse_sender_body(text, default_sender)
+        if not body:
+            continue
+        await queue_inject(clientdoc, sender_id, body, "telegram_to_sms")
+    await db.tg_state.update_one(
+        {"client_id": clientdoc["id"]},
+        {"$set": {"offset": last_offset, "updated_at": now_iso()}},
+        upsert=True,
+    )
+
+
+async def telegram_poll_loop():
+    await asyncio.sleep(5)
+    logger.info("Telegram->SMS poll loop started")
+    while True:
+        try:
+            clients = await db.clients.find({"active": True}, {"_id": 0}).to_list(500)
+            for c in clients:
+                if not c.get("bot_token") or not c.get("chat_id"):
+                    continue
+                try:
+                    await poll_client_telegram(c)
+                except Exception as e:
+                    logger.warning(f"tg poll error for {c.get('key')}: {e}")
+        except Exception as e:
+            logger.warning(f"tg poll loop error: {e}")
+        await asyncio.sleep(3)
+
+
 app.include_router(api_router)
 
 app.add_middleware(
@@ -311,6 +417,8 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup():
     await db.clients.create_index("key")
+    await db.pending_injects.create_index("client_key")
+    await db.tg_state.create_index("client_id", unique=True)
     await db.users.create_index("email", unique=True)
     admin_email = os.environ.get("ADMIN_EMAIL", "admin@teleinject.com").lower()
     admin_password = os.environ.get("ADMIN_PASSWORD", "admin123")
@@ -328,6 +436,7 @@ async def startup():
     elif not verify_password(admin_password, existing["password_hash"]):
         await db.users.update_one({"email": admin_email}, {"$set": {"password_hash": hash_password(admin_password)}})
         logger.info("Admin password updated")
+    asyncio.create_task(telegram_poll_loop())
 
 
 @app.on_event("shutdown")

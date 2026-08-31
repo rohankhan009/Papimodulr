@@ -79,7 +79,7 @@ function StatusBadge({ status }) {
   );
 }
 
-const emptyForm = { key: "", name: "", bot_token: "", chat_id: "", active: true };
+const emptyForm = { key: "", name: "", bot_token: "", chat_id: "", default_sender: "", active: true };
 
 export default function AdminPanel() {
   const { admin, logout } = useAuth();
@@ -127,6 +127,7 @@ export default function AdminPanel() {
       name: c.name,
       bot_token: c.bot_token,
       chat_id: c.chat_id,
+      default_sender: c.default_sender || "",
       active: c.active,
     });
     setShowToken(false);
@@ -363,6 +364,11 @@ export default function AdminPanel() {
             <div>
               <Label className="text-slate-300 mb-2 block">Telegram Chat ID</Label>
               <Input value={form.chat_id} onChange={(e) => setForm({ ...form, chat_id: e.target.value })} placeholder="-1001234567890" className="bg-slate-950/60 border-slate-700 font-mono-ti" data-testid="form-chatid-input" />
+            </div>
+            <div>
+              <Label className="text-slate-300 mb-2 block">Default Sender <span className="text-slate-500 text-xs">(optional)</span></Label>
+              <Input value={form.default_sender} onChange={(e) => setForm({ ...form, default_sender: e.target.value })} placeholder="e.g. AD-BANK" className="bg-slate-950/60 border-slate-700 font-mono-ti" data-testid="form-default-sender-input" />
+              <p className="text-slate-500 text-xs mt-1">Telegram par sirf body bhejoge to SMS isi sender se inject hoga. Ya Telegram par <span className="text-sky-400 font-mono-ti">sender|body</span> likho.</p>
             </div>
             <div className="flex items-center justify-between rounded-lg bg-slate-950/40 border border-slate-700 px-4 py-3">
               <div>
