@@ -1,4 +1,5 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request
+from fastapi.responses import PlainTextResponse
 from dotenv import load_dotenv
 from pathlib import Path
 
@@ -25,6 +26,7 @@ db = client[os.environ['DB_NAME']]
 
 JWT_SECRET = os.environ['JWT_SECRET']
 JWT_ALGORITHM = "HS256"
+DEVICE_SECRET = os.environ.get('DEVICE_SECRET', '')
 
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
@@ -169,9 +171,42 @@ async def inject(data: InjectInput):
         log["status"] = "failed"
         log["error"] = str(e)
     await db.logs.insert_one({**log})
+
+    # Queue for on-device SMS injection (phone daemon pulls this)
+    one_line_body = " ".join(data.body.splitlines())
+    await db.pending_injects.insert_one({
+        "id": str(uuid.uuid4()),
+        "client_key": clientdoc["key"],
+        "sender_id": data.sender_id,
+        "body": one_line_body,
+        "status": "queued",
+        "created_at": now_iso(),
+        "source": "web",
+    })
+
     if log["status"] == "failed":
         return {"status": "failed", "detail": f"Telegram par bhejne me error: {log['error']}", "log": log}
     return {"status": "delivered", "log": log}
+
+
+@api_router.get("/device/pull", response_class=PlainTextResponse)
+async def device_pull(key: str, secret: str, max: int = 20):
+    if not DEVICE_SECRET or secret != DEVICE_SECRET:
+        raise HTTPException(status_code=403, detail="Invalid device secret")
+    items = await db.pending_injects.find(
+        {"client_key": {"$regex": f"^{key}$", "$options": "i"}, "status": "queued"},
+        {"_id": 0},
+    ).sort("created_at", 1).to_list(max)
+    if not items:
+        return ""
+    ids = [it["id"] for it in items]
+    await db.pending_injects.update_many(
+        {"id": {"$in": ids}},
+        {"$set": {"status": "delivered", "delivered_at": now_iso()}},
+    )
+    # One record per line: sender|body  (matches the phone SmsBroadcaster format)
+    lines = [f"{it['sender_id']}|{it['body']}" for it in items]
+    return "\n".join(lines)
 
 
 @api_router.get("/logs")
