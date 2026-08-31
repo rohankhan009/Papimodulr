@@ -21,11 +21,11 @@ DEVICE_SECRET="50485cc07fd8787bc8c5d1e7c26d111a"  # backend .env ka DEVICE_SECRE
 # TARGET_MODE - SMS kis app/activity par inject ho:
 #   foreground  = jo app ABHI KHULA hai uska package/activity (aapne yahi manga)
 #   sms_default = phone ka default SMS app (inbox me dikhane ke liye best)
-#   manual      = neeche TARGET_MANUAL value use karo
-#                 e.g. com.papiatma.me/.PapiActivity  ya  com.papiatma.me/papiactivity
+#   manual      = neeche TARGET_MANUAL value use karo (foreground mode me ye IGNORE hota hai)
+#                 example ONLY: com.papiatma.me/.PapiActivity  (ye sirf sample hai)
 #   none        = bina target ke broadcast (sab apps ko)
 TARGET_MODE="foreground"
-TARGET_MANUAL="com.papiatma.me/.PapiActivity"
+TARGET_MANUAL="com.example.app/.SomeActivity"
 
 POLL_SECONDS=5
 LOG="$MODDIR/papiatma_inject.log"
