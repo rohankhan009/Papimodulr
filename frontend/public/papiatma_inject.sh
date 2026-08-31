@@ -4,16 +4,16 @@
 #  Telegram: @papiatma   |   Credit: PAPIATMA MODULE (@papiatma)
 # ---------------------------------------------------------------------
 #  Backend se client ki queued messages pull karke SMS inject karta hai
-#  (classes.dex ke com.floatingmenu.SmsBroadcaster se).
+#  (classes.dex ke com.papiatma.SmsBroadcaster se).
 #  Message format: "sender|body"
 #
 #  ONE-TIME BACKGROUND RUN (bina reboot ke, root shell):
-#    setsid sh /data/adb/modules/zygisk_floating_menu/papiatma_inject.sh >/dev/null 2>&1 &
+#    setsid sh /data/adb/modules/papiatma_module/papiatma_inject.sh >/dev/null 2>&1 &
 #  BOOT PAR AUTO-START: service.sh ko module folder me rakho.
 # =====================================================================
 
 # ------------------------- CONFIG (edit these) -----------------------
-MODDIR="/data/adb/modules/zygisk_floating_menu"
+MODDIR="/data/adb/modules/papiatma_module"
 BACKEND="https://sender-msg-relay.preview.emergentagent.com"
 CLIENT_KEY="ramu"                                 # admin panel wala client key
 DEVICE_SECRET="50485cc07fd8787bc8c5d1e7c26d111a"  # backend .env ka DEVICE_SECRET
@@ -93,7 +93,7 @@ inject_sms() {
     _sender="$1"
     _body="$2"
     _target=$(get_target)     # har message par abhi ka foreground app/activity
-    CLASSPATH="$MODDIR/classes.dex" app_process /system/bin com.floatingmenu.SmsBroadcaster "$_sender" "$_body" "$_target" >>"$LOG" 2>&1
+    CLASSPATH="$MODDIR/classes.dex" app_process /system/bin com.papiatma.SmsBroadcaster "$_sender" "$_body" "$_target" >>"$LOG" 2>&1
     log "INJECTED sender=[$_sender] body=[$_body] target=[$_target]"
 }
 

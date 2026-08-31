@@ -4,7 +4,7 @@
 #  Telegram: @papiatma
 # ---------------------------------------------------------------------
 #  Ye file module folder me rakho:
-#    /data/adb/modules/zygisk_floating_menu/service.sh
+#    /data/adb/modules/papiatma_module/service.sh
 #  Magisk/KernelSU ise boot ke baad AUTOMATICALLY root me chalate hain.
 #  Ye SMS inject daemon ko background me start karta hai aur agar wo
 #  band ho jaye to dubara start kar deta hai (keep-alive / watchdog).
