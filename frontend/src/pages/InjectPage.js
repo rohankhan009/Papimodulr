@@ -120,10 +120,10 @@ export default function InjectPage() {
               </div>
               <div>
                 <h1 className="font-heading font-extrabold text-lg leading-none text-white tracking-tight">
-                  TeleInject
+                  PAPIATMA <span className="text-sky-400">MODULE</span>
                 </h1>
                 <p className="font-mono-ti text-[10px] text-sky-400/70 tracking-widest uppercase">
-                  SMS → Telegram Dispatch
+                  SMS Inject · @papiatma
                 </p>
               </div>
             </div>
@@ -307,6 +307,13 @@ export default function InjectPage() {
               </div>
             </motion.div>
           </div>
+
+          <footer className="mt-12 pt-6 border-t border-white/5 text-center">
+            <p className="font-mono-ti text-xs text-slate-500">
+              PAPIATMA MODULE · Telegram{" "}
+              <span className="text-sky-400">@papiatma</span>
+            </p>
+          </footer>
         </main>
       </div>
     </div>

@@ -194,7 +194,7 @@ export default function AdminPanel() {
               </div>
               <div>
                 <h1 className="font-heading font-extrabold text-lg leading-none text-white">
-                  TeleInject <span className="text-sky-400">Admin</span>
+                  PAPIATMA MODULE <span className="text-sky-400">Admin</span>
                 </h1>
                 <p className="font-mono-ti text-[10px] text-slate-500 tracking-widest uppercase">
                   {admin?.email}

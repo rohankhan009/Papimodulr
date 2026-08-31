@@ -57,10 +57,10 @@ export default function AdminLogin() {
                 <ShieldCheck className="w-7 h-7 text-sky-400" />
               </div>
               <h1 className="font-heading text-2xl font-extrabold text-white tracking-tight">
-                Admin Access
+                PAPIATMA <span className="text-sky-400">MODULE</span>
               </h1>
               <p className="text-slate-400 text-sm mt-1">
-                Clients aur tokens manage karne ke liye login karo
+                Admin login · @papiatma
               </p>
             </div>
 
@@ -71,7 +71,7 @@ export default function AdminLogin() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@teleinject.com"
+                  placeholder="admin@papiatma.com"
                   className="bg-slate-950/60 border-slate-700 text-white h-12"
                   data-testid="admin-email-input"
                   required
